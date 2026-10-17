@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>J.A.R.E.D.</title>
+<style>
+:root{--bg:#111116;--panel:#1c1c24;--line:#2b2b36;--cy:#8b7bff;--tx:#f3f3f8;--mut:#9a9aae}
+*{box-sizing:border-box}
+body{margin:0;height:100vh;display:grid;grid-template-columns:232px 1fr;background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,sans-serif}
+header{display:flex;align-items:center;gap:8px;padding:12px 16px}header button{border-radius:999px}
+.core{width:30px;height:30px;border-radius:50%;border:2px solid var(--cy);box-shadow:0 0 12px var(--cy),inset 0 0 8px var(--cy);position:relative}
+.core::after{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--cy)}
+.core.busy{animation:pulse 1s infinite alternate}
+@keyframes pulse{to{box-shadow:0 0 22px var(--cy),inset 0 0 14px var(--cy)}}
+@media(prefers-reduced-motion:reduce){.core.busy{animation:none}}
+h1{font-size:16px;margin:0;letter-spacing:.18em;font-weight:600}
+header small{color:var(--mut);display:block;letter-spacing:0}
+.sp{flex:1}
+#log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:88%;padding:9px 12px;border-radius:10px;white-space:pre-wrap;word-wrap:break-word}
+.u{align-self:flex-end;background:var(--line)}
+.a{align-self:flex-start;background:var(--panel);border:1px solid var(--line)}
+.t{align-self:flex-start;color:var(--mut);font-size:12px}
+form{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}
+input,button{font:inherit;color:var(--tx);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+input{flex:1;min-width:0}
+button{cursor:pointer}button:hover{border-color:var(--cy)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+button.on{background:var(--cy);color:#04202c}
+details{padding:0 16px}
+summary{padding:8px 0;color:var(--mut);cursor:pointer}
+details label{display:block;margin:6px 0 10px;color:var(--mut);font-size:12px}
+details input{width:100%;margin-top:3px}
+</style><style>
+#fx{position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:0;transition:opacity 1s}
+body{transition:background .8s}
+body[data-clima=sol]{--bg:#0b3d7a;--panel:#14509a;--line:#d9a62e;--cy:#ffd45c;--tx:#fff8e1;--mut:#cfe0f5}
+body[data-clima=noche]{--bg:#050b24;--panel:#0b1740;--line:#27357a;--cy:#9db4ff;--tx:#e6ebff;--mut:#8d9bd1}
+body[data-clima=nube]{--bg:#2c333b;--panel:#3a424c;--line:#556070;--cy:#b9c6d4;--tx:#e8edf2;--mut:#a3aeba}
+body[data-clima=lluvia]{--bg:#262c34;--panel:#323a45;--line:#47525f;--cy:#8fb0cc;--tx:#e3e9ef;--mut:#97a4b1}
+body[data-clima=tormenta]{--bg:#14161d;--panel:#1f2330;--line:#363c52;--cy:#b9a8ff;--tx:#e6e6f2;--mut:#9396ad}
+body[data-clima=nieve]{--bg:#1b2b3d;--panel:#2a3f56;--line:#5b7a99;--cy:#e8f4ff;--tx:#f2f8ff;--mut:#b4c8dc}
+body[data-clima=sol] #fx{opacity:1;background:radial-gradient(circle at 85% 6%,rgba(255,214,92,.55),transparent 45%)}
+body[data-clima=lluvia] #fx,body[data-clima=tormenta] #fx{opacity:1;background:repeating-linear-gradient(100deg,transparent 0 14px,rgba(190,210,230,.35) 14px 15px);animation:rain .6s linear infinite}
+body[data-clima=nieve] #fx{opacity:1;background:radial-gradient(circle,#fff 1.5px,transparent 2px) 0 0/40px 40px,radial-gradient(circle,#fff 1px,transparent 1.5px) 20px 20px/60px 60px;animation:snow 7s linear infinite}
+@keyframes rain{to{background-position:-20px 120px}}
+@keyframes snow{to{background-position:0 40px,20px 80px}}
+@media(prefers-reduced-motion:reduce){#fx{animation:none!important}}
+.dz{width:100%;padding:16px;margin:6px 0;border-style:dashed;text-align:center;color:var(--mut)}
+.row{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:10px}
+.qz{margin:0 0 12px}.qz p{margin:4px 0}.qz button{display:block;width:100%;text-align:left;margin:4px 0}
+.qz button.ok{border-color:#2ecc71;background:#12351f}.qz button.bad{border-color:#ff6b6b;background:#3a1717}
+.ex{color:var(--mut);font-size:13px}
+
+#side{display:flex;flex-direction:column;gap:4px;padding:14px 10px;background:#0b0b10;border-right:1px solid var(--line);overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px 14px}
+#side button{text-align:left;background:transparent;border-color:transparent}
+#side button:hover:not([disabled]){background:var(--panel);border-color:var(--line)}
+#side button[disabled]{opacity:.5;cursor:default}
+#side .sp{flex:1}
+#wxt h2,#wxc h3{margin:0 0 8px}#wxt .big{font-size:42px;margin:0;line-height:1.1}#wxt .mut{color:var(--mut)}
+#wxc svg{width:100%;height:auto}#wxc svg text{fill:var(--mut);font-size:12px}
+#hero{padding:28px 18px 8px;text-align:center}#hero h2{margin:0 0 14px;font-size:22px}
+#chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}#chips button{border-radius:999px}
+#log{min-height:0}
+@media(max-width:760px){body{grid-template-columns:1fr;grid-template-rows:auto 1fr}#side{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:0 8px}#side .sp{display:none}#main.wx,#main[data-v=inv]{grid-template-columns:1fr;overflow-y:auto;height:auto}}
+
+#main{display:grid;grid-template-columns:minmax(0,1fr);min-height:0;height:100vh}
+#main>section{display:none;min-width:0;min-height:0;overflow-y:auto;padding:18px;border-right:1px solid var(--line)}
+#main>#chat{padding:0;overflow:hidden;border-right:0}
+#main[data-v=chat]>#chat,#main[data-v=img]>#vimg,#main[data-v=cal]>#vcal,#main[data-v=per]>#vper{display:flex;flex-direction:column}
+#main.wx>#wxt,#main.wx>#wxc,#main[data-v=inv]>#invl,#main[data-v=inv]>#invc{display:block}
+#main.wx>#chat,#main[data-v=inv]>#chat{display:flex;flex-direction:column}
+#main.wx,#main[data-v=inv]{grid-template-columns:250px minmax(0,1fr) 360px}
+#main.wx #hero,#main[data-v=inv] #hero{display:none}
+#side button[aria-current=page]{background:var(--panel);border-color:var(--line)}
+button[aria-pressed=true]{background:var(--cy);color:#0b0a1f;border-color:var(--cy)}
+textarea,select{font:inherit;color:var(--tx);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea:focus-visible,select:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+#vcal select{width:auto}#vcal form input{flex:1}
+label{display:block;margin:10px 0 4px;color:var(--mut)}
+#f{margin:10px;border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:6px 8px}
+#f input{border:0;background:transparent}#f button{border-radius:999px}
+#histp{display:flex;flex-direction:column;gap:4px;padding:8px 14px;border-bottom:1px solid var(--line)}#histp[hidden]{display:none}
+.core.big{width:64px;height:64px;margin:0 auto 14px}.core.big::after{inset:16px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:10px 0}
+.dh{color:var(--mut);text-align:center}
+.dc{min-height:64px;border:1px solid var(--line);border-radius:8px;padding:4px;font-size:12px;overflow:hidden}
+.dc span{display:block;background:var(--line);border-radius:4px;margin-top:2px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc.hoy{border-color:var(--cy)}
+.st{display:flex;justify-content:space-between;width:100%;margin:3px 0;text-align:left}
+.st.sel{border-color:var(--cy);background:var(--panel)}
+.up{color:#2ecc71}.dn{color:#ff6b6b}
+.days{display:flex;flex-direction:column;gap:4px;margin:10px 0}.day{padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.mut{color:var(--mut)}
+#main[data-v=inv]>#invl{order:1}#main[data-v=inv]>#invc{order:2}#main[data-v=inv]>#chat{order:3}
+
+#hudw{display:flex;justify-content:center;padding:44px 0 4px;flex:none}
+#hudw.compact{padding:18px 0 0}
+#main.wx #hudw,#main[data-v=inv] #hudw{display:none}
+
+.hud3d{position:relative;width:100%;aspect-ratio:1;perspective:700px;transform:scale(var(--s,1));transition:transform .09s linear;filter:drop-shadow(0 0 10px rgba(255,95,207,.5))}
+.hud3d .g{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .25s}
+.hud3d i{position:absolute;border-radius:50%;transform-style:preserve-3d}
+.hud3d .a,.hud3d .b,.hud3d .c,.hud3d .d{-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--t)),#000 calc(100% - var(--t) + 1px));mask:radial-gradient(farthest-side,transparent calc(100% - var(--t)),#000 calc(100% - var(--t) + 1px))}
+.hud3d .o{inset:-7%;border:1px dashed rgba(255,95,207,.65);animation:spz 60s linear infinite reverse}
+.hud3d .a{inset:0;--t:6px;background:conic-gradient(#ff5fcf 0 24%,transparent 0 29%,#ff5fcf 0 58%,transparent 0 64%,#ff5fcf 0 88%,transparent 0);animation:spy 6s ease-in-out infinite alternate}
+.hud3d .b{inset:11%;--t:3px;background:conic-gradient(#8b7bff 0 40%,transparent 0 46%,#8b7bff 0 80%,transparent 0 88%,#8b7bff 0);animation:spx 8s ease-in-out infinite alternate}
+.hud3d .c{inset:22%;--t:12px;background:repeating-conic-gradient(#ff9be6 0 1.5deg,transparent 0 6deg);animation:spz 40s linear infinite}
+.hud3d .d{inset:34%;--t:4px;background:conic-gradient(#ff5fcf 0 62%,transparent 0 70%,#ff9be6 0 92%,transparent 0);animation:spd 11s linear infinite}
+.hud3d .e{inset:41%;background:radial-gradient(circle at 35% 30%,#fff 0,#ffd0f3 18%,#ff5fcf 55%,#7a4dff 100%);box-shadow:0 0 24px 6px rgba(255,95,207,.7);transform:translateZ(4px);animation:pls 2.4s ease-in-out infinite alternate}
+@keyframes spy{from{transform:rotateY(-60deg)}to{transform:rotateY(60deg)}}@keyframes spx{from{transform:rotateX(-60deg)}to{transform:rotateX(60deg)}}@keyframes spz{to{transform:rotateZ(360deg)}}
+@keyframes spd{from{transform:rotateX(70deg) rotateZ(0)}to{transform:rotateX(70deg) rotateZ(360deg)}}
+@keyframes pls{to{transform:translateZ(4px) scale(1.12)}}
+@media(prefers-reduced-motion:reduce){.hud3d i{animation:none!important}}
+#hud{width:min(230px,34vw);margin:0 auto}#hudw.compact #hud{width:92px}
+#core{width:34px;height:34px;flex:none}#core.busy .hud3d{filter:drop-shadow(0 0 12px #ff5fcf) brightness(1.3)}
+#hero{display:contents}#hero[hidden]{display:none}
+#hello{text-align:center;font-size:28px;margin:6px 0 16px}
+#chips{margin:14px auto 0;max-width:680px}
+#f{align-self:center;width:min(760px,calc(100% - 20px))}
+#main:not(.wx):not([data-v=inv]) #chat.home{justify-content:flex-start}
+#main:not(.wx):not([data-v=inv]) #chat.home #hudw{margin-top:auto}
+#main:not(.wx):not([data-v=inv]) #chat.home #f{order:5;width:min(680px,calc(100% - 20px))}
+#main:not(.wx):not([data-v=inv]) #chat.home #chips{order:6}
+#main:not(.wx):not([data-v=inv]) #chat.home #log{order:7;flex:none;max-height:140px;margin-bottom:auto;width:min(680px,calc(100% - 20px));align-self:center}
+#side button{display:flex;align-items:center;gap:10px}
+#side button.cta{background:var(--cy);color:#101014;border-radius:999px;justify-content:center;font-weight:600;margin:10px 0}
+#side button.cta:hover:not([disabled]){background:#a395ff;border-color:transparent}
+#side button.user{border-color:var(--line);border-radius:12px}
+.user small{display:block;color:var(--mut)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--cy);color:#101014;display:grid;place-items:center;font-weight:700;flex:none}
+</style><style id="usercss"></style></head><body>
+<div id="fx" aria-hidden="true"></div>
+<nav id="side" aria-label="Menú principal"><div class="brand"><div id="core"><div class="hud3d"><div class="g"><i class="o"></i><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i></div></div></div><h1>J.A.R.E.D.</h1></div>
+<button type="button" data-v="chat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>J.A.R.E.D.</button>
+<button type="button" data-v="img"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>Crear imagen</button>
+<button type="button" data-v="cal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendario</button>
+<button type="button" data-a="estilo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>Modificar interfaz</button>
+<button type="button" data-v="inv"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>Inversiones</button>
+<button type="button" data-a="nuevo" class="cta">＋ Nuevo chat</button>
+<div class="sp"></div><button type="button" data-v="per" class="user"><span class="av" id="av">S</span><span><b id="uname">Señor</b><small>Perfil y ajustes</small></span></button></nav>
+<main id="main" data-v="chat"><section id="wxt" aria-label="Clima"></section><section id="wxc"></section><section id="chat" class="home">
+<header><strong>J.A.R.E.D.</strong><span class="sp"></span><button type="button" data-a="nuevo">Nuevo chat</button><button type="button" id="hist">Historial de chat</button><button id="spk" type="button" title="Respuestas por voz">Voz: no</button></header>
+<div id="histp" hidden></div>
+<details id="apuntes"><summary>Apuntes</summary>
+<button type="button" id="pick" class="dz">Arrastre aquí un archivo (.txt, .md, .pdf) o pulse para elegirlo</button>
+<input type="file" id="file" accept=".txt,.md,.pdf,text/plain,application/pdf" hidden>
+<p id="astat" style="color:var(--mut);font-size:12px;margin:0 0 8px">Ningún archivo cargado</p>
+<div class="row"><button type="button" data-m="resumen">Resumen</button><button type="button" data-m="esquema">Esquema</button><button type="button" data-m="cuestionario">Cuestionario</button></div></details>
+<div id="hudw"><div class="hud3d" id="hud" aria-hidden="true"><div class="g"><i class="o"></i><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i></div></div></div>
+<div id="hero"><h2 id="hello">¡Hola, señor! ¿En qué le ayudo hoy?</h2><div id="chips">
+<button type="button" data-a="subir">Subir</button><button type="button" data-a="apuntes">Apuntes</button><button type="button" data-a="apuntes">Quiz</button><button type="button" data-a="apuntes">Resumen</button><button type="button" data-a="agenda">Agenda</button><button type="button" data-a="clima">Clima</button><button type="button" data-a="investigar">Investigar</button><button type="button" data-v="inv">Inversiones</button></div></div>
+<div id="log" aria-live="polite"></div>
+<form id="f"><button type="button" id="plus" title="Subir apuntes" aria-label="Subir apuntes">+</button><input id="q" placeholder="Pregúnteme lo que quiera…" autocomplete="off" aria-label="Mensaje"><button type="button" id="mic" title="Hablar">Habla</button><button aria-label="Enviar">↑</button></form>
+</section>
+<section id="vimg"><h2>Crear imagen</h2><label for="iprompt">Describa la imagen</label><textarea id="iprompt" rows="3" placeholder="Un robot mayordomo futurista, estilo ilustración"></textarea><div class="row" style="margin-top:8px"><button type="button" id="igo">Crear</button></div><div id="iout" aria-live="polite"></div></section>
+<section id="vcal" aria-label="Calendario"></section>
+<section id="invl"><h2>Inversiones</h2><p class="mut">Precios simulados y dinero falso.</p><div id="stlist"></div></section>
+<section id="invc"><h2 id="shh"></h2><div class="row" id="tfs"></div><div id="chartbox"></div><p id="pinfo"></p><div class="row"><input id="qty" type="number" min="1" step="1" style="width:90px;flex:none" aria-label="Cantidad de acciones"><button type="button" id="buy">Comprar</button><button type="button" id="sell">Vender</button><button type="button" id="simhelp">Pedir ayuda a J.A.R.E.D.</button><button type="button" id="simreset">Reiniciar</button></div><p id="smsg" class="mut" aria-live="polite"></p></section>
+<section id="vper"><h2>Perfil</h2><label for="pnom">Nombre</label><input id="pnom" autocomplete="off" style="width:100%"><label for="psob">Sobre mí</label><textarea id="psob" rows="5" placeholder="Estudios, gustos, cómo quiere que le trate…"></textarea><div class="row" style="margin-top:8px"><button type="button" id="pguar">Guardar perfil</button></div><p id="pmsg" class="mut" aria-live="polite"></p><h2>Ajustes</h2><details id="cfg" open><summary>Ajustes</summary>
+<label>Clave de API de Gemini (gratis en aistudio.google.com)<input id="key" type="password" placeholder="AIza..."></label>
+<label>Modelo<input id="model" placeholder="gemini-3.8-flash"></label>
+<label>Modelo de imagen<input id="imgm" placeholder="gemini-2.5-flash-image"></label>
+<label>ID de cliente OAuth de Google<input id="cid" placeholder="xxxx.apps.googleusercontent.com"></label>
+<button id="save" type="button">Guardar</button><p style="color:var(--mut);font-size:12px">Origen autorizado para Google: <b id="ruri"></b></p></details>
+</section>
+</main>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+const $ = s => document.querySelector(s);
+let cfg = {}, history = [], tok = null, tokExp = 0, speak = false;
+const SCOPES = ["calendar", "classroom.courses.readonly", "classroom.coursework.me.readonly"]
+  .map(s => "https://www.googleapis.com/auth/" + s).join(" ");
+const DB = () => ({ eventos: [], notas: [], css: "", inv: [], perfil: {}, sim: { cash: 10000, pos: {} }, ...JSON.parse(localStorage.getItem("jared_data") || "{}") });
+const saveDB = d => localStorage.setItem("jared_data", JSON.stringify(d));
+const applyCss = () => { $("#usercss").textContent = DB().css; };
+const SYSTEM = () => `Eres J.A.R.E.D., un asistente personal al estilo de JARVIS. Llama SIEMPRE "señor" al usuario. Tono elegante, ingenioso y conciso. Responde en español.
+Herramientas: agenda_add / agenda_list / agenda_remove para los eventos del usuario (anótalos en cuanto los mencione; convierte fechas relativas a YYYY-MM-DD con la fecha actual; tipo "examen" para exámenes); cambiar_estilo para rediseñar la interfaz con CSS (variables disponibles en :root: --bg, --panel, --line, --cy, --tx, --mut; también puedes usar selectores como body, .m, .u, .a, header, #log) y restablecer_estilo para volver al diseño original; recordar para guardar datos o gustos del usuario; donde_ver para películas y series (no puedes reproducirlas: abre un buscador de plataformas legales); investigar / investigaciones_estado / investigacion_detener / investigacion_resultados para vigilar un tema durante horas buscando en internet cada cierto tiempo (solo funciona mientras esta pestaña siga abierta; si no dan tema, horas o frecuencia, pregúntalo); crear_imagen para generar una imagen a partir de una descripción; clima para el tiempo de una ciudad (cambia el aspecto de la interfaz según el estado; si no indican ciudad, pregúntala); calendar_* y classroom_tareas solo si el usuario ha conectado Google.
+Fecha y hora actual: ${new Date().toString()}.
+Perfil del usuario: nombre «${DB().perfil?.nombre || "sin indicar"}»; sobre él: ${DB().perfil?.sobre || "nada"}.
+Lo que sabes del usuario: ${DB().notas.join("; ") || "nada todavía"}.`;
+function morning0() {
+  const hoy = new Date(new Date().setHours(0, 0, 0, 0)), hr = new Date().getHours();
+  const ev = DB().eventos.map(e => { const [y, m, d] = e.fecha.split("-").map(Number); return { ...e, dias: Math.round((new Date(y, m - 1, d) - hoy) / 864e5) }; })
+    .filter(e => e.dias >= 0 && e.dias <= 7).sort((a, b) => a.dias - b.dias);
+  const saludo = hr < 13 ? "Buenos días" : hr < 21 ? "Buenas tardes" : "Buenas noches";
+  if (!ev.length) return saludo + ", señor. No tiene nada anotado para los próximos 7 días. Dígame sus eventos y los apunto.";
+  return saludo + ", señor. Su agenda:\n" + ev.map(e => {
+    const cuando = e.dias === 0 ? "Hoy" : e.dias === 1 ? "Mañana" : `En ${e.dias} días (${e.fecha})`;
+    const aviso = e.dias <= 4 && /examen|prueba|entrega/i.test(e.tipo + " " + e.titulo) ? ` ⚠ quedan ${e.dias === 0 ? "0 días: es hoy" : e.dias + " días"}` : "";
+    return `• ${cuando}: ${e.titulo}${aviso}`;
+  }).join("\n");
+}
+
+const S = (props, req) => ({ type: "OBJECT", properties: props, required: req });
+const STR = { type: "STRING" };
+const TOOLS = [{ functionDeclarations: [
+  { name: "calendar_list", description: "Lista eventos de Google Calendar entre dos fechas ISO.", parameters: S({ desde: STR, hasta: STR }, ["desde", "hasta"]) },
+  { name: "calendar_create", description: "Crea un evento en Google Calendar. Fechas ISO con zona horaria.", parameters: S({ titulo: STR, inicio: STR, fin: STR }, ["titulo", "inicio", "fin"]) },
+  { name: "classroom_tareas", description: "Lista tareas de todos los cursos activos de Google Classroom, con fecha de entrega." },
+  { name: "agenda_add", description: "Anota un evento en la agenda del usuario.", parameters: S({ titulo: STR, fecha: { type: "STRING", description: "YYYY-MM-DD" }, tipo: { type: "STRING", description: "examen, entrega, cita, otro" } }, ["titulo", "fecha"]) },
+  { name: "agenda_list", description: "Lista todos los eventos anotados." },
+  { name: "agenda_remove", description: "Borra eventos cuyo título contenga el texto dado.", parameters: S({ titulo: STR }, ["titulo"]) },
+  { name: "cambiar_estilo", description: "Añade CSS para cambiar el aspecto de la interfaz. Se guarda de forma permanente.", parameters: S({ css: STR }, ["css"]) },
+  { name: "restablecer_estilo", description: "Borra los cambios de estilo y vuelve al diseño original." },
+  { name: "recordar", description: "Guarda un dato o gusto del usuario para el futuro.", parameters: S({ dato: STR }, ["dato"]) },
+  { name: "donde_ver", description: "Abre un buscador de plataformas legales donde ver una película o serie.", parameters: S({ titulo: STR }, ["titulo"]) },
+  { name: "clima", description: "Consulta el tiempo actual de una ciudad y cambia la interfaz según el clima.", parameters: S({ ciudad: STR }, ["ciudad"]) },
+  { name: "investigar", description: "Vigila un tema durante varias horas: busca información nueva en internet cada cierto tiempo y avisa.", parameters: S({ tema: STR, horas: { type: "NUMBER" }, cada_minutos: { type: "NUMBER" } }, ["tema", "horas"]) },
+  { name: "investigaciones_estado", description: "Lista las investigaciones en curso o terminadas." },
+  { name: "investigacion_detener", description: "Detiene una investigación por su tema.", parameters: S({ tema: STR }, ["tema"]) },
+  { name: "investigacion_resultados", description: "Devuelve los últimos hallazgos de una investigación y los marca como leídos.", parameters: S({ tema: STR }, ["tema"]) },
+  { name: "crear_imagen", description: "Genera una imagen a partir de una descripción y la muestra en la pestaña Crear imagen.", parameters: S({ descripcion: STR }, ["descripcion"]) },
+  { name: "open_url", description: "Abre una URL en una pestaña nueva.", parameters: S({ url: STR }, ["url"]) }
+] }];
+
+function token() { return new Promise((res, rej) => {
+  if (tok && Date.now() < tokExp) return res(tok);
+  if (!cfg.cid) return rej(new Error("Falta el ID de cliente de Google en Ajustes."));
+  if (!window.google) return rej(new Error("No se pudo cargar el acceso de Google."));
+  google.accounts.oauth2.initTokenClient({ client_id: cfg.cid, scope: SCOPES, callback: r => {
+    if (r.error) return rej(new Error(r.error));
+    tok = r.access_token; tokExp = Date.now() + (r.expires_in - 60) * 1000; res(tok);
+  } }).requestAccessToken();
+}); }
+async function g(url, opt = {}) {
+  const r = await fetch(url, { ...opt, headers: { Authorization: "Bearer " + await token(), "Content-Type": "application/json" } });
+  if (!r.ok) throw new Error("Google " + r.status + ": " + (await r.text()).slice(0, 200));
+  return r.json();
+}
+const ok = msg => confirm("J.A.R.E.D. solicita permiso, señor:\n\n" + msg);
+
+const WMO = c => c === 0 ? ["despejado", "sol"] : c <= 2 ? ["poco nuboso", "sol"] : c === 3 ? ["nublado", "nube"] : c <= 48 ? ["niebla", "nube"] : c <= 57 ? ["llovizna", "lluvia"] : c <= 67 ? ["lluvia", "lluvia"] : c <= 77 ? ["nieve", "nieve"] : c <= 82 ? ["chubascos", "lluvia"] : c <= 86 ? ["nevada", "nieve"] : ["tormenta", "tormenta"];
+async function run(name, i) {
+  switch (name) {
+    case "calendar_list": {
+      const q = new URLSearchParams({ timeMin: new Date(i.desde).toISOString(), timeMax: new Date(i.hasta).toISOString(), singleEvents: "true", orderBy: "startTime" });
+      const d = await g("https://www.googleapis.com/calendar/v3/calendars/primary/events?" + q);
+      return d.items.map(e => ({ titulo: e.summary, inicio: e.start.dateTime || e.start.date, fin: e.end.dateTime || e.end.date }));
+    }
+    case "calendar_create":
+      if (!ok(`Crear evento "${i.titulo}" (${i.inicio} → ${i.fin})`)) return "Denegado por el usuario.";
+      return g("https://www.googleapis.com/calendar/v3/calendars/primary/events", { method: "POST", body: JSON.stringify({ summary: i.titulo, start: { dateTime: i.inicio }, end: { dateTime: i.fin } }) }).then(e => "Creado: " + e.htmlLink);
+    case "classroom_tareas": {
+      const cs = (await g("https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE")).courses || [];
+      const out = [];
+      for (const c of cs.slice(0, 12)) {
+        const w = (await g(`https://classroom.googleapis.com/v1/courses/${c.id}/courseWork?orderBy=dueDate%20desc&pageSize=15`)).courseWork || [];
+        w.forEach(t => out.push({ curso: c.name, tarea: t.title, entrega: t.dueDate ? `${t.dueDate.year}-${t.dueDate.month}-${t.dueDate.day}` : "sin fecha" }));
+      }
+      return out;
+    }
+    case "agenda_add": { const d = DB(); d.eventos.push({ titulo: i.titulo, fecha: i.fecha, tipo: i.tipo || "" }); saveDB(d); return "Anotado."; }
+    case "agenda_list": return DB().eventos;
+    case "agenda_remove": { const d = DB(), n = d.eventos.length; d.eventos = d.eventos.filter(e => !e.titulo.toLowerCase().includes(i.titulo.toLowerCase())); saveDB(d); return `Borrados: ${n - d.eventos.length}`; }
+    case "cambiar_estilo": { const d = DB(); d.css += "\n" + i.css; saveDB(d); applyCss(); return "Aplicado."; }
+    case "restablecer_estilo": { const d = DB(); d.css = ""; saveDB(d); applyCss(); delete document.body.dataset.clima; return "Diseño original restaurado."; }
+    case "recordar": { const d = DB(); d.notas.push(i.dato); saveDB(d); return "Guardado."; }
+    case "donde_ver": window.open("https://www.justwatch.com/es/buscar?q=" + encodeURIComponent(i.titulo), "_blank"); return "Buscador de plataformas abierto.";
+    case "clima": {
+      const geo = await (await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&language=es&name=" + encodeURIComponent(i.ciudad))).json();
+      const p = geo.results?.[0]; if (!p) return "No encontré esa ciudad.";
+      const f = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m&hourly=temperature_2m,precipitation_probability,wind_speed_10m&forecast_hours=24&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=7&timezone=auto`)).json(); const w = f.current;
+      let [desc, tema] = WMO(w.weather_code); if (tema === "sol" && !w.is_day) tema = "noche";
+      document.body.dataset.clima = tema; verClima(`${p.name}, ${p.country}`, desc, w, f.hourly, f.daily);
+      return { ciudad: `${p.name}, ${p.country}`, estado: desc, temperatura_c: w.temperature_2m, sensacion_c: w.apparent_temperature, viento_kmh: w.wind_speed_10m, manana: f.daily ? { estado: WMO(f.daily.weather_code[1])[0], max: f.daily.temperature_2m_max[1], min: f.daily.temperature_2m_min[1] } : null };
+    }
+    case "investigar": {
+      const horas = Math.min(12, Math.max(0.25, +i.horas || 1)), min = Math.max(10, +i.cada_minutos || 30);
+      if (!ok(`Investigar «${i.tema}» durante ${horas} h, buscando cada ${min} min. Necesita esta pestaña abierta y el Chromebook encendido.`)) return "Denegado por el usuario.";
+      const d = DB(), now = Date.now();
+      d.inv.push({ id: now, tema: i.tema, hasta: now + horas * 36e5, cada: min * 6e4, proximo: now, activa: true, resultados: [], fallos: 0, vistos: 0 });
+      saveDB(d); mantener(); setTimeout(tick, 500);
+      return `Iniciada: «${i.tema}», ${horas} h, cada ${min} min. La primera búsqueda empieza ya.`;
+    }
+    case "investigaciones_estado": return DB().inv.map(t => ({ tema: t.tema, activa: t.activa, termina: new Date(t.hasta).toLocaleString(), cada_min: t.cada / 6e4, hallazgos: t.resultados.length, sin_leer: t.resultados.length - t.vistos }));
+    case "investigacion_detener": { const d = DB(); let n = 0; d.inv.forEach(t => { if (t.activa && t.tema.toLowerCase().includes(i.tema.toLowerCase())) { t.activa = false; n++; } }); saveDB(d); return `Detenidas: ${n}`; }
+    case "investigacion_resultados": {
+      const d = DB(), ts = d.inv.filter(t => t.tema.toLowerCase().includes(i.tema.toLowerCase()));
+      ts.forEach(t => t.vistos = t.resultados.length); saveDB(d);
+      return ts.map(t => ({ tema: t.tema, ultimos: t.resultados.slice(-5).map(r => ({ fecha: new Date(r.fecha).toLocaleString(), texto: r.texto, fuentes: r.fuentes })) }));
+    }
+    case "crear_imagen": ir("img"); $("#iprompt").value = i.descripcion; crearImagen(); return "Creando la imagen en la pestaña Crear imagen.";
+    case "open_url": window.open(i.url, "_blank"); return "Abierta.";
+  }
+  return "Herramienta desconocida.";
+}
+
+function say(cls, text, nolog) {
+  const d = document.createElement("div"); d.className = "m " + cls; d.textContent = text;
+  if (!nolog && cls !== "t") conv.log.push({ cls, text });
+  $("#log").append(d); $("#log").scrollTop = 1e9; return d;
+}
+const API = "https://generativelanguage.googleapis.com/v1beta/";
+const retryable = d => d.error && /demand|overload|quota|unavailable|exhausted|no longer available|not found|not supported|429|503/i.test((d.error.message || "") + (d.error.status || ""));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function callGemini(body) {
+  const call = async m => (await fetch(`${API}models/${m}:generateContent`, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": cfg.key }, body })).json();
+  const m = cfg.model || "gemini-3.8-flash";
+  let d = await call(m);
+  for (let i = 0; i < 2 && retryable(d); i++) { say("t", "Servidores saturados, reintentando…"); await wait(3000 * (i + 1)); d = await call(m); }
+  if (retryable(d)) {
+    try {
+      const l = await (await fetch(API + "models?pageSize=100", { headers: { "x-goog-api-key": cfg.key } })).json();
+      const alts = (l.models || []).filter(x => /flash/.test(x.name) && !/tts|image|live|audio|embed/.test(x.name) && (x.supportedGenerationMethods || []).includes("generateContent")).map(x => x.name.replace("models/", "")).filter(x => x !== m).slice(0, 4);
+      for (const alt of alts) { say("t", "Probando con " + alt + "…"); d = await call(alt); if (!retryable(d)) break; }
+    } catch (e) {}
+  }
+  return d;
+}
+
+async function ask(text) {
+  history.push({ role: "user", parts: [{ text }] });
+  $("#core").classList.add("busy");
+  try {
+    for (let n = 0; n < 8; n++) {
+      const d = await callGemini(JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM() }] }, tools: TOOLS, contents: history }));
+      if (d.error) throw new Error(d.error.message);
+      const parts = d.candidates?.[0]?.content?.parts;
+      if (!parts) throw new Error("Respuesta vacía de Gemini.");
+      history.push({ role: "model", parts });
+      const txt = parts.filter(p => p.text && !p.thought).map(p => p.text).join("\n");
+      if (txt) { say("a", txt); if (speak) { const u = new SpeechSynthesisUtterance(txt); u.lang = "es-ES"; u.onboundary = () => { hudEscala(1.12); setTimeout(() => hudEscala(1), 130); }; speechSynthesis.speak(u); } }
+      const calls = parts.filter(p => p.functionCall);
+      if (!calls.length) break;
+      const results = [];
+      for (const { functionCall: c } of calls) {
+        say("t", "Ejecutando " + c.name + "…");
+        let out; try { out = await run(c.name, c.args || {}); } catch (e) { out = "Error: " + e.message; }
+        results.push({ functionResponse: { name: c.name, response: { result: out } } });
+      }
+      history.push({ role: "user", parts: results });
+    }
+  } catch (e) { say("a", "Ha ocurrido un fallo, señor: " + e.message); }
+  saveConv();
+  $("#core").classList.remove("busy");
+}
+
+$("#f").onsubmit = e => {
+  e.preventDefault(); const t = $("#q").value.trim(); if (!t) return;
+  try { if (Notification.permission === "default") Notification.requestPermission(); } catch (x) {}
+  if (!cfg.key) { ir("per"); return say("a", "Necesito su clave de Gemini en Ajustes, señor."); }
+  $("#q").value = ""; $("#hero").hidden = true; $("#hudw").classList.add("compact"); $("#chat").classList.remove("home"); say("u", t); if (!conv.titulo) conv.titulo = t.slice(0, 40); ask(t);
+};
+$("#save").onclick = async () => {
+  cfg = { key: $("#key").value.trim(), cid: $("#cid").value.trim(), model: $("#model").value.trim(), imgModel: $("#imgm").value.trim() };
+  localStorage.setItem("jared_cfg", JSON.stringify(cfg)); $("#cfg").open = false; say("a", "Ajustes guardados, señor.");
+};
+$("#spk").onclick = e => { speak = !speak; e.target.textContent = "Voz: " + (speak ? "sí" : "no"); e.target.classList.toggle("on", speak); };
+$("#mic").onclick = () => {
+  const SR = window.webkitSpeechRecognition; if (!SR) return say("a", "Este navegador no admite dictado, señor.");
+  const r = new SR(); r.lang = "es-ES";
+  r.onresult = ev => { $("#q").value = ev.results[0][0].transcript; $("#f").requestSubmit(); };
+  r.onerror = ev => say("a", "No pude escucharle, señor (" + ev.error + ").");
+  r.onend = detenerNivel; $("#mic").textContent = "Escuchando…"; $("#mic").setAttribute("aria-pressed", "true"); escucharNivel(); r.start();
+};
+let apuntes = null;
+function cargar(file) {
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) return say("a", "Ese archivo pesa demasiado, señor (máximo 10 MB).");
+  const pdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  const rd = new FileReader();
+  rd.onload = () => {
+    apuntes = pdf
+      ? { part: { inline_data: { mime_type: "application/pdf", data: rd.result.split(",")[1] } } }
+      : { part: { text: "APUNTES (" + file.name + "):\n" + String(rd.result).slice(0, 120000) } };
+    $("#astat").textContent = "Cargado: " + file.name;
+    say("a", `Apuntes «${file.name}» recibidos, señor. Elija resumen, esquema o cuestionario.`);
+  };
+  pdf ? rd.readAsDataURL(file) : rd.readAsText(file);
+}
+async function estudiar(modo) {
+  if (!apuntes) return say("a", "Primero suba unos apuntes, señor.");
+  if (!cfg.key) { ir("per"); return say("a", "Necesito su clave de Gemini en Ajustes, señor."); }
+  const prompts = {
+    resumen: "Resume estos apuntes en español de forma clara y breve (máximo 250 palabras).",
+    esquema: "Haz un esquema jerárquico en español de estos apuntes, con guiones y sangrías, destacando los conceptos clave.",
+    cuestionario: 'Crea 8 preguntas tipo test en español sobre estos apuntes. Devuelve SOLO un array JSON de objetos con esta forma: {"pregunta": string, "opciones": [4 strings], "correcta": índice 0-3, "explicacion": string}.'
+  };
+  $("#core").classList.add("busy"); say("t", "Procesando apuntes…");
+  try {
+    const body = { contents: [{ role: "user", parts: [apuntes.part, { text: prompts[modo] }] }] };
+    if (modo === "cuestionario") body.generationConfig = { responseMimeType: "application/json" };
+    const d = await callGemini(JSON.stringify(body));
+    if (d.error) throw new Error(d.error.message);
+    const t = d.candidates[0].content.parts.filter(p => p.text && !p.thought).map(p => p.text).join("");
+    if (modo === "cuestionario") quiz(JSON.parse(t.replace(/```json|```/g, "").trim())); else say("a", t);
+  } catch (e) { say("a", "No pude procesar los apuntes, señor: " + e.message); }
+  $("#core").classList.remove("busy");
+}
+function quiz(qs) {
+  if (!Array.isArray(qs) || !qs.length) throw new Error("Cuestionario vacío");
+  let pts = 0, hechas = 0;
+  const box = document.createElement("div"); box.className = "m a";
+  qs.forEach((q, n) => {
+    const b = document.createElement("div"); b.className = "qz";
+    const t = document.createElement("p"); t.textContent = `${n + 1}. ${q.pregunta}`; b.append(t);
+    const ex = document.createElement("p"); ex.className = "ex"; ex.hidden = true;
+    q.opciones.forEach((o, k) => {
+      const btn = document.createElement("button"); btn.type = "button"; btn.textContent = o;
+      btn.onclick = () => {
+        if (b.dataset.done) return; b.dataset.done = 1; hechas++;
+        const ok = k === q.correcta; if (ok) pts++;
+        btn.classList.add(ok ? "ok" : "bad"); btn.textContent = (ok ? "✓ " : "✗ ") + o;
+        if (!ok) { const c = b.querySelectorAll("button")[q.correcta]; if (c) { c.classList.add("ok"); c.textContent = "✓ " + c.textContent; } }
+        ex.textContent = q.explicacion || ""; ex.hidden = false;
+        if (hechas === qs.length) say("a", `Resultado: ${pts} de ${qs.length}, señor.`);
+      };
+      b.append(btn);
+    });
+    b.append(ex); box.append(b);
+  });
+  $("#log").append(box); $("#log").scrollTop = 1e9;
+}
+$("#pick").onclick = () => $("#file").click();
+$("#file").onchange = e => cargar(e.target.files[0]);
+$("#pick").ondragover = e => e.preventDefault();
+$("#pick").ondrop = e => { e.preventDefault(); cargar(e.dataTransfer.files[0]); };
+document.querySelectorAll("[data-m]").forEach(b => b.onclick = () => estudiar(b.dataset.m));
+function avisar(msg) {
+  say("a", msg); document.title = "(•) J.A.R.E.D.";
+  try { if (Notification.permission === "granted") new Notification("J.A.R.E.D.", { body: msg.slice(0, 120) }); } catch (e) {}
+}
+window.addEventListener("focus", () => { document.title = "J.A.R.E.D."; });
+let wl = null;
+async function mantener() {
+  try {
+    if (DB().inv.some(t => t.activa) && !wl && document.visibilityState === "visible") {
+      wl = await navigator.wakeLock.request("screen"); wl.addEventListener("release", () => { wl = null; });
+    }
+  } catch (e) {}
+}
+document.addEventListener("visibilitychange", mantener);
+async function buscarNovedades(t) {
+  const prev = t.resultados.slice(-1)[0]?.texto || "ninguno";
+  const body = { tools: [{ google_search: {} }], contents: [{ role: "user", parts: [{ text: `Busca en internet información reciente sobre: «${t.tema}». Resume en español, en máximo 120 palabras, lo más relevante y nuevo. Resumen anterior (no lo repitas; si no hay nada nuevo, dilo en una frase): ${prev}` }] }] };
+  const d = await callGemini(JSON.stringify(body));
+  if (d.error) throw new Error(d.error.message);
+  const c = d.candidates?.[0];
+  const texto = (c?.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join("").trim();
+  if (!texto) throw new Error("Respuesta vacía");
+  return { texto, fuentes: (c?.groundingMetadata?.groundingChunks || []).map(g => g.web?.uri).filter(Boolean).slice(0, 3) };
+}
+let ocupado = false;
+async function tick() {
+  if (ocupado || !cfg.key) return;
+  const now = Date.now(), t = DB().inv.find(x => x.activa && now >= x.proximo);
+  if (!t) return;
+  ocupado = true;
+  try {
+    if (now >= t.hasta) {
+      const d = DB(), t2 = d.inv.find(x => x.id === t.id); t2.activa = false; saveDB(d);
+      avisar(`La investigación «${t.tema}» ha terminado, señor: ${t2.resultados.length} hallazgos. Pídame que se los lea.`);
+    } else {
+      let r, err;
+      try { r = await buscarNovedades(t); } catch (e) { err = e.message; }
+      const d = DB(), t2 = d.inv.find(x => x.id === t.id);
+      if (t2) {
+        t2.proximo = Date.now() + t2.cada;
+        if (r) { t2.fallos = 0; t2.resultados.push({ fecha: Date.now(), ...r }); t2.vistos = t2.resultados.length; }
+        else if (++t2.fallos >= 3) { t2.activa = false; }
+        saveDB(d);
+        if (r) avisar(`🔎 «${t.tema}», señor:\n${r.texto}` + (r.fuentes.length ? "\nFuentes: " + r.fuentes.join(" ") : ""));
+        else avisar(`La búsqueda de «${t.tema}» falló (${err}).` + (!t2.activa ? " La he detenido tras 3 fallos seguidos." : " Reintentaré más tarde."));
+      }
+    }
+  } finally { ocupado = false; }
+  mantener();
+}
+setInterval(tick, 30000); setTimeout(tick, 3000); mantener();
+function morning() {
+  const extra = DB().inv.map(t => { const n = t.resultados.length - t.vistos; return n > 0 ? `🔎 «${t.tema}»: ${n} actualizaciones sin leer.` : (t.activa ? `🔎 Vigilando «${t.tema}» hasta ${new Date(t.hasta).toLocaleTimeString()}.` : ""); }).filter(Boolean);
+  return morning0() + (extra.length ? "\n\n" + extra.join("\n") : "");
+}
+const ICO = c => c === 0 ? "☀️" : c <= 2 ? "🌤️" : c === 3 ? "☁️" : c <= 48 ? "🌫️" : c <= 67 ? "🌧️" : c <= 77 ? "❄️" : c <= 82 ? "🌦️" : c <= 86 ? "❄️" : "⛈️";
+const SER = [["Temperatura", "temperature_2m", "°"], ["Precipitaciones", "precipitation_probability", "%"], ["Viento", "wind_speed_10m", " km/h"]];
+function verClima(ciudad, desc, w, hr, dl) {
+  ir("chat"); $("#main").classList.add("wx");
+  const box = $("#wxt"); box.replaceChildren();
+  const mk = (tag, txt, cls) => { const e = document.createElement(tag); e.textContent = txt; if (cls) e.className = cls; box.append(e); };
+  mk("h2", ciudad); mk("p", Math.round(w.temperature_2m) + " °C", "big"); mk("p", desc);
+  mk("p", `Sensación ${Math.round(w.apparent_temperature)} °C · Viento ${w.wind_speed_10m} km/h`, "mut");
+  if (dl) {
+    const row = document.createElement("div"); row.className = "days";
+    dl.time.forEach((t, k) => { const c = document.createElement("div"); c.className = "day"; c.textContent = `${k === 0 ? "Hoy" : k === 1 ? "Mañana" : new Date(t + "T12:00").toLocaleDateString("es-ES", { weekday: "short" })} ${ICO(dl.weather_code[k])} ${Math.round(dl.temperature_2m_max[k])}°/${Math.round(dl.temperature_2m_min[k])}°`; row.append(c); });
+    box.append(row);
+  }
+  const cb = document.createElement("button"); cb.type = "button"; cb.textContent = "Cerrar panel"; cb.onclick = () => $("#main").classList.remove("wx"); box.append(cb);
+  const cont = $("#wxc"); cont.replaceChildren();
+  const tabs = document.createElement("div"); tabs.className = "row"; const gr = document.createElement("div"); cont.append(tabs, gr);
+  const pintar = ([nom, key, u]) => {
+    const T = hr?.[key];
+    if (!T || T.length < 2) { gr.textContent = "Sin datos."; return; }
+    const n = T.length, mn = Math.min(...T), mx = Math.max(...T), r = (mx - mn) || 1, X = k => 40 + k * (540 / (n - 1)), Y = v => 220 - (v - mn) / r * 180;
+    const pts = T.map((v, k) => `${X(k).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+    const lab = hr.time.map((t, k) => k % 6 === 0 ? `<text x="${X(k).toFixed(1)}" y="248" text-anchor="middle">${String(t).slice(11, 16)}</text>` : "").join("");
+    gr.innerHTML = `<svg viewBox="0 0 600 260" role="img" aria-label="${nom} de las próximas 24 horas"><polyline points="${pts}" fill="none" stroke="var(--cy)" stroke-width="3"/><text x="4" y="${(Y(mx) + 4).toFixed(1)}">${Math.round(mx)}${u}</text><text x="4" y="${(Y(mn) + 4).toFixed(1)}">${Math.round(mn)}${u}</text>${lab}</svg>`;
+    tabs.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.textContent === nom));
+  };
+  SER.forEach(s => { const x = document.createElement("button"); x.type = "button"; x.textContent = s[0]; x.onclick = () => pintar(s); tabs.append(x); });
+  pintar(SER[0]);
+}
+function agendaCompleta() {
+  const hoy = new Date(new Date().setHours(0, 0, 0, 0));
+  const ev = DB().eventos.map(e => { const [y, m, d] = e.fecha.split("-").map(Number); return { ...e, f: new Date(y, m - 1, d) }; }).filter(e => e.f >= hoy).sort((a, b) => a.f - b.f);
+  return ev.length ? "Su calendario, señor:\n" + ev.map(e => `• ${e.f.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "long" })}: ${e.titulo}${e.tipo ? " (" + e.tipo + ")" : ""}`).join("\n") : "No tiene eventos próximos anotados, señor. Dígame sus exámenes y los apunto.";
+}
+const foco = txt => { $("#q").value = txt; $("#q").focus(); };
+let conv = { id: Date.now(), titulo: "", log: [], history: [] };
+const loadConvs = () => { try { return JSON.parse(localStorage.getItem("jared_convs") || "[]"); } catch (e) { return []; } };
+function saveConv() {
+  conv.history = history;
+  let all = [conv, ...loadConvs().filter(c => c.id !== conv.id)].slice(0, 30);
+  for (;;) { try { localStorage.setItem("jared_convs", JSON.stringify(all)); return; } catch (e) { if (all.length <= 1) return; all = all.slice(0, -1); } }
+}
+function ir(v) {
+  const m = $("#main"); m.dataset.v = v; m.classList.remove("wx");
+  if (v !== "inv") stopSim();
+  if (v === "inv") startSim(); if (v === "cal") renderCal(); if (v === "per") loadPer();
+  document.querySelectorAll("#side [data-v]").forEach(b => b.setAttribute("aria-current", b.dataset.v === v ? "page" : "false"));
+}
+document.querySelectorAll("button[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
+document.querySelectorAll("button[data-a]").forEach(b => b.onclick = () => {
+  const a = b.dataset.a;
+  if (a === "nuevo") { conv = { id: Date.now(), titulo: "", log: [], history: [] }; history = []; $("#log").replaceChildren(); $("#hero").hidden = false; $("#hudw").classList.remove("compact"); $("#chat").classList.add("home"); ir("chat"); say("a", morning(), true); }
+  else if (a === "agenda") { ir("chat"); say("a", agendaCompleta(), true); }
+  else if (a === "apuntes") { ir("chat"); $("#apuntes").open = true; $("#apuntes").scrollIntoView(); }
+  else if (a === "subir") { ir("chat"); $("#apuntes").open = true; $("#file").click(); }
+  else if (a === "estilo") { ir("chat"); foco("Cambia la interfaz: "); }
+  else if (a === "clima") { ir("chat"); foco("¿Qué tiempo hace en "); }
+  else if (a === "investigar") { ir("chat"); foco("Investiga durante 2 horas, cada 30 minutos: "); }
+});
+$("#plus").onclick = () => { $("#apuntes").open = true; $("#file").click(); };
+$("#hist").onclick = () => {
+  const p = $("#histp"); p.hidden = !p.hidden; if (p.hidden) return; p.replaceChildren();
+  const all = loadConvs(); if (!all.length) p.textContent = "Aún no hay conversaciones guardadas.";
+  all.forEach(c => { const b = document.createElement("button"); b.type = "button"; b.textContent = (c.titulo || "Sin título") + " · " + new Date(c.id).toLocaleDateString("es-ES");
+    b.onclick = () => { conv = c; history = c.history || []; $("#log").replaceChildren(); c.log.forEach(x => say(x.cls, x.text, true)); $("#hero").hidden = true; $("#hudw").classList.add("compact"); $("#chat").classList.remove("home"); p.hidden = true; }; p.append(b); });
+};
+// ---- perfil ----
+function loadPer() { const p = DB().perfil || {}; $("#pnom").value = p.nombre || ""; $("#psob").value = p.sobre || ""; }
+$("#pguar").onclick = () => { const d = DB(); d.perfil = { nombre: $("#pnom").value.trim(), sobre: $("#psob").value.trim() }; saveDB(d); $("#pmsg").textContent = "Perfil guardado, señor."; nombreUI(); };
+// ---- imagen ----
+async function crearImagen() {
+  const p = $("#iprompt").value.trim(), out = $("#iout"); if (!p) return;
+  out.textContent = "Creando imagen…"; let src = "", nota = "";
+  if (cfg.key) {
+    try {
+      const r = await fetch(`${API}models/${cfg.imgModel || "gemini-2.5-flash-image"}:generateContent`, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": cfg.key }, body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: p }] }], generationConfig: { responseModalities: ["TEXT", "IMAGE"] } }) });
+      const d = await r.json(), im = d.candidates?.[0]?.content?.parts?.map(x => x.inlineData || x.inline_data).find(Boolean);
+      if (im) src = `data:${im.mimeType || im.mime_type};base64,${im.data}`; else nota = d.error?.message || "Gemini no devolvió imagen.";
+    } catch (e) { nota = e.message; }
+  }
+  if (!src) { src = "https://image.pollinations.ai/prompt/" + encodeURIComponent(p) + "?width=768&height=768&nologo=true"; nota = (nota ? "Gemini no pudo (" + nota.slice(0, 120) + "). " : "") + "He usado un servicio gratuito externo (Pollinations); la descripción se envía a ese servicio."; }
+  out.replaceChildren();
+  const img = document.createElement("img"); img.alt = p; img.style.cssText = "max-width:100%;border-radius:12px;margin:10px 0;display:block";
+  img.onerror = () => { out.textContent = "No pude crear la imagen ahora mismo. " + nota; };
+  img.src = src;
+  const a = document.createElement("a"); a.href = src; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Abrir imagen"; a.style.color = "var(--cy)"; if (src.startsWith("data:")) a.download = "jared.png";
+  const n = document.createElement("p"); n.className = "mut"; n.textContent = nota;
+  out.append(n, img, a);
+}
+$("#igo").onclick = crearImagen;
+// ---- calendario ----
+let calM = new Date(); calM.setDate(1);
+function renderCal() {
+  const box = $("#vcal"); box.replaceChildren();
+  const d = DB(), y = calM.getFullYear(), m = calM.getMonth(), n0 = new Date();
+  const hs = `${n0.getFullYear()}-${String(n0.getMonth() + 1).padStart(2, "0")}-${String(n0.getDate()).padStart(2, "0")}`;
+  const h2 = document.createElement("h2"); h2.textContent = calM.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  const nav = document.createElement("div"); nav.className = "row";
+  [["‹", -1, "Mes anterior"], ["›", 1, "Mes siguiente"]].forEach(([t, k, l]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.setAttribute("aria-label", l); b.onclick = () => { calM.setMonth(m + k); renderCal(); }; nav.append(b); });
+  box.append(h2, nav);
+  const g = document.createElement("div"); g.className = "cal";
+  ["L", "M", "X", "J", "V", "S", "D"].forEach(x => { const c = document.createElement("div"); c.className = "dh"; c.textContent = x; g.append(c); });
+  for (let k = 0; k < (new Date(y, m, 1).getDay() + 6) % 7; k++) g.append(document.createElement("div"));
+  for (let n = 1; n <= new Date(y, m + 1, 0).getDate(); n++) {
+    const f = `${y}-${String(m + 1).padStart(2, "0")}-${String(n).padStart(2, "0")}`, c = document.createElement("div"); c.className = "dc" + (f === hs ? " hoy" : "");
+    const num = document.createElement("b"); num.textContent = n; c.append(num);
+    d.eventos.filter(e => e.fecha === f).forEach(e => { const s = document.createElement("span"); s.textContent = e.titulo; c.append(s); });
+    g.append(c);
+  }
+  box.append(g);
+  const fo = document.createElement("form"); fo.className = "row";
+  fo.innerHTML = '<input id="ct" placeholder="Examen de mates" aria-label="Título del evento" autocomplete="off"><input id="cf" type="date" aria-label="Fecha"><select id="cy" aria-label="Tipo"><option>examen</option><option>entrega</option><option>cita</option><option>otro</option></select><button>Añadir</button>';
+  fo.onsubmit = e => { e.preventDefault(); const t = $("#ct").value.trim(), fe = $("#cf").value; if (!t || !fe) return; const dd = DB(); dd.eventos.push({ titulo: t, fecha: fe, tipo: $("#cy").value }); saveDB(dd); renderCal(); };
+  box.append(fo);
+  const hoyD = new Date(new Date().setHours(0, 0, 0, 0));
+  d.eventos.map((e, idx) => { const [yy, mm, d2] = e.fecha.split("-").map(Number); return { e, idx, dias: Math.round((new Date(yy, mm - 1, d2) - hoyD) / 864e5) }; }).filter(x => x.dias >= 0).sort((a, b) => a.dias - b.dias).forEach(x => {
+    const r = document.createElement("div"); r.className = "row"; const t = document.createElement("span");
+    t.textContent = `${x.e.fecha} · ${x.e.titulo}${x.e.tipo ? " (" + x.e.tipo + ")" : ""} — ${x.dias === 0 ? "hoy" : x.dias + " días"}${x.dias <= 4 && /examen|prueba|entrega/i.test(x.e.tipo + " " + x.e.titulo) ? " ⚠" : ""}`;
+    const b = document.createElement("button"); b.type = "button"; b.textContent = "✕"; b.setAttribute("aria-label", "Borrar " + x.e.titulo);
+    b.onclick = () => { const q = DB(); q.eventos.splice(x.idx, 1); saveDB(q); renderCal(); }; r.append(t, b); box.append(r);
+  });
+}
+// ---- bolsa simulada ----
+const STK = [["AAPL","Apple",230],["TSLA","Tesla",250],["MSFT","Microsoft",420],["NVDA","Nvidia",130],["AMZN","Amazon",190],["GOOGL","Alphabet",170],["META","Meta",560],["NFLX","Netflix",700],["AMD","AMD",160],["INTC","Intel",25],["KO","Coca-Cola",65],["PEP","PepsiCo",165],["DIS","Disney",95],["NKE","Nike",80],["BABA","Alibaba",90],["UBER","Uber",75],["SPOT","Spotify",330],["PYPL","PayPal",70]];
+const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+const SIM = STK.map(([sym, nombre, p]) => ({ sym, nombre, p, open: p / (1 + (Math.random() * 0.1 - 0.04)) }));
+const TFS = { "10 s": [1e4, "sec"], "1 min": [6e4, "min"], "1 h": [36e5, "min"], "1 día": [864e5, "min"] };
+const fmt = n => n.toFixed(2);
+let selSym = "AAPL", tf = "1 min", simT = null, lastSort = 0;
+function genSerie(p, n, step, sigma, last) {
+  const a = new Array(n); let v = p;
+  for (let k = n - 1; k >= 0; k--) { a[k] = { t: last - (n - 1 - k) * step, p: v }; v = v / (1 + gauss() * sigma); }
+  return a;
+}
+function velas(serie, ms, n) {
+  const out = []; let cur = null;
+  for (let k = serie.length - 1; k >= 0 && out.length <= n; k--) {
+    const pt = serie[k], b = Math.floor(pt.t / ms);
+    if (!cur || cur.b !== b) { if (cur) out.push(cur); cur = { b, o: pt.p, h: pt.p, l: pt.p, c: pt.p }; }
+    else { cur.o = pt.p; cur.h = Math.max(cur.h, pt.p); cur.l = Math.min(cur.l, pt.p); }
+  }
+  if (cur) out.push(cur);
+  return out.reverse().slice(-n);
+}
+function initInv() {
+  if ($("#stlist").childElementCount) return;
+  SIM.forEach(s => { const b = document.createElement("button"); b.type = "button"; b.className = "st"; b.dataset.s = s.sym;
+    b.innerHTML = `<span><b>${s.sym}</b> <small>${s.nombre}</small></span><span><span class="pr"></span> <span class="ch"></span></span>`; b.onclick = () => elegir(s.sym); $("#stlist").append(b); });
+  Object.keys(TFS).forEach(k => { const b = document.createElement("button"); b.type = "button"; b.textContent = k; b.dataset.tf = k; b.onclick = () => { tf = k; drawChart(); updPanel(); }; $("#tfs").append(b); });
+  $("#qty").value = 1; $("#buy").onclick = () => operar(1); $("#sell").onclick = () => operar(-1); $("#simhelp").onclick = pedirAyuda;
+  $("#simreset").onclick = () => { const d = DB(); d.sim = { cash: 10000, pos: {} }; saveDB(d); updPanel(); $("#smsg").textContent = "Simulador reiniciado con 10000 $ falsos."; };
+  elegir(selSym);
+}
+function elegir(sym) {
+  selSym = sym; const s = SIM.find(x => x.sym === sym);
+  if (!s.sec) { const now = Date.now(), bm = Math.floor(now / 6e4) * 6e4; s.sec = genSerie(s.p, 600, 1000, 0.0006, now); s.min = genSerie(s.p, 43200, 6e4, 0.0012, bm); }
+  updList(); drawChart(); updPanel();
+}
+function updList() {
+  const now = Date.now();
+  SIM.forEach(s => { const b = $(`#stlist [data-s="${s.sym}"]`), c = (s.p / s.open - 1) * 100, e = b.querySelector(".ch");
+    b.querySelector(".pr").textContent = fmt(s.p); e.textContent = (c >= 0 ? "▲ " : "▼ ") + Math.abs(c).toFixed(2) + "%"; e.className = "ch " + (c >= 0 ? "up" : "dn"); b.classList.toggle("sel", s.sym === selSym); });
+  if (now - lastSort > 15000) { lastSort = now; [...SIM].sort((a, b) => b.p / b.open - a.p / a.open).forEach(s => $("#stlist").append($(`#stlist [data-s="${s.sym}"]`))); }
+}
+function drawChart() {
+  const s = SIM.find(x => x.sym === selSym); if (!s || !s.sec) return;
+  const [ms, key] = TFS[tf], v = velas(s[key], ms, 50);
+  if (v.length < 2) { $("#chartbox").textContent = "Reuniendo datos…"; return; }
+  const W = 640, H = 300, L = 8, R = 100, T = 12, B = 8, hi = Math.max(...v.map(c => c.h)), lo = Math.min(...v.map(c => c.l)), rg = (hi - lo) || 1;
+  const Y = p => (T + (1 - (p - lo) / rg) * (H - T - B)).toFixed(1), bw = (W - L - R) / v.length; let g = "";
+  v.forEach((c, k) => { const x = (L + k * bw + bw / 2).toFixed(1), up = c.c >= c.o, col = up ? "#2ecc71" : "#ff6b6b";
+    g += `<line x1="${x}" x2="${x}" y1="${Y(c.h)}" y2="${Y(c.l)}" stroke="${col}"/><rect x="${(x - bw * .35).toFixed(1)}" y="${Y(Math.max(c.o, c.c))}" width="${(bw * .7).toFixed(1)}" height="${Math.max(1, Math.abs(Y(c.o) - Y(c.c))).toFixed(1)}" fill="${up ? "none" : col}" stroke="${col}"/>`; });
+  const ln = (p, col, dash, txt) => `<line x1="${L}" x2="${W - R}" y1="${Y(p)}" y2="${Y(p)}" stroke="${col}" stroke-dasharray="${dash}"/><text x="${W - R + 4}" y="${(+Y(p) + 4).toFixed(1)}" fill="${col}">${txt} ${fmt(p)}</text>`;
+  g += ln(hi, "#ff6b6b", "4 4", "Resist.") + ln(lo, "#2ecc71", "4 4", "Soporte") + ln(s.p, "#8b7bff", "0", "Ahora");
+  $("#chartbox").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de velas de ${s.sym}" style="width:100%;height:auto;font-size:11px">${g}</svg>`;
+  s.sr = { lo, hi };
+}
+function updPanel() {
+  const s = SIM.find(x => x.sym === selSym), d = DB().sim || { cash: 10000, pos: {} }, p = d.pos[s.sym] || { q: 0, avg: 0 }, c = (s.p / s.open - 1) * 100;
+  $("#shh").textContent = `${s.nombre} (${s.sym}) ${fmt(s.p)} $ · ${c >= 0 ? "+" : ""}${c.toFixed(2)}% hoy`;
+  document.querySelectorAll("#tfs [data-tf]").forEach(b => b.setAttribute("aria-pressed", b.dataset.tf === tf));
+  const total = d.cash + Object.entries(d.pos).reduce((a, [k, v]) => a + v.q * SIM.find(x => x.sym === k).p, 0);
+  $("#pinfo").textContent = `Efectivo: ${fmt(d.cash)} $ · Tiene ${p.q} acciones de ${s.sym}` + (p.q ? ` (compra media ${fmt(p.avg)} $, resultado ${fmt((s.p - p.avg) * p.q)} $)` : "") + ` · Valor total: ${fmt(total)} $ (dinero falso)`;
+}
+function operar(dir) {
+  const s = SIM.find(x => x.sym === selSym), q = Math.floor(+$("#qty").value), d = DB(), msg = t => { $("#smsg").textContent = t; };
+  d.sim = d.sim || { cash: 10000, pos: {} };
+  if (!(q > 0)) return msg("Indique una cantidad válida, señor.");
+  const pos = d.sim.pos[s.sym] || { q: 0, avg: 0 };
+  if (dir > 0) { const cost = q * s.p; if (cost > d.sim.cash) return msg("No tiene efectivo suficiente."); d.sim.cash -= cost; pos.avg = (pos.avg * pos.q + cost) / (pos.q + q); pos.q += q; msg(`Comprado ${q} ${s.sym} a ${fmt(s.p)} $.`); }
+  else { if (q > pos.q) return msg("No tiene tantas acciones."); d.sim.cash += q * s.p; pos.q -= q; msg(`Vendido ${q} ${s.sym} a ${fmt(s.p)} $. Resultado: ${fmt((s.p - pos.avg) * q)} $.`); if (!pos.q) pos.avg = 0; }
+  d.sim.pos[s.sym] = pos; saveDB(d); updPanel();
+}
+function pedirAyuda() {
+  const s = SIM.find(x => x.sym === selSym), d = DB().sim || { cash: 10000, pos: {} }, p = d.pos[s.sym] || { q: 0 }, sr = s.sr || {};
+  foco(`Estoy en el simulador de bolsa (precios simulados, dinero falso). ${s.nombre} (${s.sym}) cotiza a ${fmt(s.p)} $, con velas de ${tf}; soporte ${fmt(sr.lo || s.p)} y resistencia ${fmt(sr.hi || s.p)} en el gráfico visible. Tengo ${fmt(d.cash)} $ de efectivo y ${p.q} acciones. Explícame qué ves y qué haría un inversor en este ejercicio, sin que sea asesoramiento financiero.`);
+  $("#f").requestSubmit();
+}
+function simTick() {
+  const now = Date.now(); SIM.forEach(s => { s.p = Math.max(0.5, s.p * (1 + gauss() * 0.0006)); });
+  const s = SIM.find(x => x.sym === selSym);
+  if (s && s.sec) {
+    s.sec.push({ t: now, p: s.p }); if (s.sec.length > 3600) s.sec.shift();
+    const bm = Math.floor(now / 6e4) * 6e4, last = s.min[s.min.length - 1];
+    if (last.t === bm) last.p = s.p; else s.min.push({ t: bm, p: s.p });
+  }
+  updList(); drawChart(); updPanel();
+}
+function startSim() { initInv(); if (!simT) simT = setInterval(simTick, 1000); }
+function stopSim() { clearInterval(simT); simT = null; }
+let aCtx = null, aStream = null, aRaf = 0, nivelS = 1;
+const hudEscala = s => document.querySelectorAll(".hud3d").forEach(e => e.style.setProperty("--s", s.toFixed(3)));
+async function escucharNivel() {
+  if (aStream) return;
+  try {
+    aStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false } });
+    aCtx = new AudioContext(); const an = aCtx.createAnalyser(); an.fftSize = 512; aCtx.createMediaStreamSource(aStream).connect(an);
+    const buf = new Uint8Array(an.fftSize);
+    const loop = () => {
+      an.getByteTimeDomainData(buf);
+      let sum = 0; for (const v of buf) { const x = (v - 128) / 128; sum += x * x; }
+      const tgt = 1 + Math.min(Math.sqrt(sum / buf.length) * 5, 0.35);
+      nivelS += (tgt - nivelS) * (tgt > nivelS ? 0.45 : 0.12);
+      hudEscala(nivelS); aRaf = requestAnimationFrame(loop);
+    };
+    loop();
+  } catch (e) { aStream = null; }
+}
+function detenerNivel() {
+  cancelAnimationFrame(aRaf); aStream?.getTracks().forEach(t => t.stop()); aStream = null; try { aCtx?.close(); } catch (e) {} aCtx = null;
+  nivelS = 1; hudEscala(1); $("#mic").textContent = "Habla"; $("#mic").setAttribute("aria-pressed", "false");
+}
+function nombreUI() { const n = DB().perfil?.nombre || "Señor"; $("#uname").textContent = n; $("#av").textContent = n[0].toUpperCase(); }
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  $("#chat").addEventListener("pointermove", e => {
+    const r = $("#hudw").getBoundingClientRect(), dx = (e.clientX - (r.left + r.width / 2)) / innerWidth, dy = (e.clientY - (r.top + r.height / 2)) / innerHeight;
+    document.querySelectorAll(".hud3d .g").forEach(g => { g.style.setProperty("--ry", (dx * 30).toFixed(1) + "deg"); g.style.setProperty("--rx", (-dy * 30).toFixed(1) + "deg"); });
+  });
+}
+(async () => {
+  cfg = JSON.parse(localStorage.getItem("jared_cfg") || "{}");
+  $("#key").value = cfg.key || ""; $("#model").value = cfg.model || ""; $("#cid").value = cfg.cid || "";
+  $("#ruri").textContent = location.origin;
+  if (!cfg.key) ir("per");
+  applyCss(); nombreUI(); say("a", morning(), true); $("#imgm").value = cfg.imgModel || "";
+})();
+
+</script></body></html>
